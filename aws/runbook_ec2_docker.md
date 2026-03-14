@@ -40,13 +40,10 @@ aws ec2 describe-security-groups \
   --output text
 ```
 
-`GroupId` が表示された場合は既存のものを再利用する。次のコマンドはスキップしてStep3へ進む。
+`GroupId` が表示された場合は既存のものを再利用する。
+既存のセキュリティグループを再利用する場合、SSH許可ルールの確認・追加もスキップしてStep3へ進む。
+
 表示されない場合は以下のコマンドで新規作成する。
-
-
-この確認コマンドを最初に実行することで、既存のGroupIdを取得できます。再利用か新規作成かをその場で判断できます。
-
-セキュリティグループの作成
 ```bash
 aws ec2 create-security-group \
   --group-name sre-practice-sg \
@@ -55,7 +52,16 @@ aws ec2 create-security-group \
 
 表示された `GroupId` をメモする。
 
-SSH接続を許可する。
+SSH許可ルールが設定済みか確認する。
+```bash
+aws ec2 describe-security-groups \
+  --filters "Name=group-name,Values=sre-practice-sg" \
+  --query 'SecurityGroups[0].IpPermissions' \
+  --output table
+```
+
+22番ポートが表示されていればSSH許可ルールの追加はスキップしてStep3へ進む。
+表示されない場合は以下のコマンドでSSH許可ルールを追加する。
 ```bash
 aws ec2 authorize-security-group-ingress \
   --group-id  \
