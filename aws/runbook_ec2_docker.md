@@ -85,7 +85,7 @@ aws ec2 describe-images \
 ### Step4：EC2インスタンスの起動
 ```bash
 aws ec2 run-instances \
-  --image-id  \
+  --image-id <Step3でメモしたMI ID> \
   --instance-type t4g.micro \
   --key-name sre-practice-key \
   --security-group-ids  \
@@ -99,13 +99,13 @@ aws ec2 run-instances \
 ### Step5：インスタンスの起動待ち
 ```bash
 aws ec2 wait instance-running \
-  --instance-ids 
+  --instance-ids <Step4でメモしたInstanceId>
 ```
 
 ### Step6：パブリックIPアドレスの取得
 ```bash
 aws ec2 describe-instances \
-  --instance-ids  \
+  --instance-ids <Step4でメモしたInstanceId> \
   --query 'Reservations[0].Instances[0].PublicIpAddress' \
   --output text
 ```
@@ -143,7 +143,7 @@ exit
 
 ### Step11：インスタンスの停止・削除（必須）
 ```bash
-aws ec2 terminate-instances --instance-ids 
+aws ec2 terminate-instances --instance-ids <Step4でメモしたInstanceId>
 ```
 
 削除確認。
