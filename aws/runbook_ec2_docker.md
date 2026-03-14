@@ -30,7 +30,21 @@ aws ec2 create-key-pair \
 chmod 600 ~/.ssh/sre-practice-key.pem
 ```
 
-### Step2：セキュリティグループの作成
+### Step2：セキュリティグループの確認・作成
+
+既存のセキュリティグループを確認する。
+```bash
+aws ec2 describe-security-groups \
+  --filters "Name=group-name,Values=sre-practice-sg" \
+  --query 'SecurityGroups[0].GroupId' \
+  --output text
+```
+
+`GroupId` が表示された場合は既存のものを再利用する。次のコマンドはスキップしてStep3へ進む。
+表示されない場合は以下のコマンドで新規作成する。
+```
+
+この確認コマンドを最初に実行することで、既存のGroupIdを取得できます。再利用か新規作成かをその場で判断できます。
 ```bash
 aws ec2 create-security-group \
   --group-name sre-practice-sg \
