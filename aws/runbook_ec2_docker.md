@@ -94,6 +94,7 @@ aws ec2 run-instances \
 ```
 
 表示された `InstanceId` をメモする。
+※ Step5・Step6・Step11で使用する。
 
 ### Step5：インスタンスの起動待ち
 ```bash
