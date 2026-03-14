@@ -85,7 +85,7 @@ aws ec2 describe-images \
 ### Step4：EC2インスタンスの起動
 ```bash
 aws ec2 run-instances \
-  --image-id <Step3でメモしたMI ID> \
+  --image-id <Step3でメモしたAMI ID> \
   --instance-type t4g.micro \
   --key-name sre-practice-key \
   --security-group-ids  \
