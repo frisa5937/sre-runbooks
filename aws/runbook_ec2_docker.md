@@ -45,6 +45,8 @@ aws ec2 describe-security-groups \
 ```
 
 この確認コマンドを最初に実行することで、既存のGroupIdを取得できます。再利用か新規作成かをその場で判断できます。
+
+セキュリティグループの作成
 ```bash
 aws ec2 create-security-group \
   --group-name sre-practice-sg \
