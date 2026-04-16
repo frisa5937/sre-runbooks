@@ -214,3 +214,17 @@ git rebase --abort
 | push前の確認 | `git status` と `git diff` で意図しない変更が含まれていないか確認する |
 | PATの管理 | 漏洩した場合は手間を惜しまず即座に無効化・再発行する |
 | ファイル命名 | 命名規則に従う。スペースは使わない |
+
+### divergent branchesエラーが出た場合
+
+症状：git pullしたときに以下のエラーが出る
+`fatal: Need to specify how to reconcile divergent branches.`
+
+対処手順：
+```bash
+git config pull.rebase false
+git pull origin main
+```
+
+vimエディタが開いたら以下で保存して閉じる
+`:wq`
