@@ -228,3 +228,17 @@ git pull origin main
 
 vimエディタが開いたら以下で保存して閉じる
 `:wq`
+
+### GitHubのGUI上で誤編集した場合
+
+症状：GUIで誤ってファイルを編集してしまった
+
+対処手順：
+```bash
+# リモートとローカルの差分を確認する
+git fetch origin
+git diff HEAD origin/main -- <ファイルパス>
+
+# ローカルの内容でリモートを上書きする
+git push origin main --force-with-lease
+```
