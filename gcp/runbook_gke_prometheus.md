@@ -66,6 +66,17 @@ gcloud artifacts repositories create sre-practice-repo \
 gcloud auth configure-docker asia-northeast1-docker.pkg.dev
 ```
 
+### Docker認証について
+gcloud auth configure-docker は一度設定すれば ~/.docker/config.json に
+永続化されるため、2回目以降は「already registered correctly」と表示される。
+新しいリポジトリを作成しても再設定不要。
+ 
+### Docker認証が必要なケース
+以下の場合は gcloud auth configure-docker を再実行する：
+・別の端末で作業する場合
+・~/.docker/config.json を削除した場合
+・Docker Desktopを再インストールした場合
+
 ### 2-3. イメージをビルドしてpushする
 
 ```bash
@@ -159,6 +170,18 @@ spec:
     app: prometheus
 ```
 
+### 2回目以降の注意事項
+prometheus-deployment.yaml は初回作成後に保存済みのため
+2回目以降は新規作成不要。
+ただし以下を必ず確認する：
+ 
+```bash
+cat ~/practice/prometheus/prometheus-deployment.yaml
+```
+ 
+プロジェクトIDが現在のプロジェクトと一致しているか確認する。
+異なる場合はYAML内のPROJECT_IDを修正してから進む。
+
 ### 5-2. デプロイする
 
 ```bash
@@ -225,6 +248,112 @@ up
 
 ✅ `1` が返ってくれば正常。
 
+## Step 8: Grafanaをデプロイする
+ 
+### 8-1. grafana-deployment.yamlを作成する
+ 
+```bash
+code ~/practice/prometheus/grafana-deployment.yaml
+```
+ 
+以下の内容を貼り付けて保存する。
+ 
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest
+        ports:
+        - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 3000
+    targetPort: 3000
+  selector:
+    app: grafana
+```
+ 
+### 8-2. デプロイする
+ 
+```bash
+kubectl apply -f ~/practice/prometheus/grafana-deployment.yaml
+```
+ 
+### 8-3. 外部IPを確認する
+ 
+```bash
+kubectl get services
+```
+ 
+✅ GrafanaのEXTERNAL-IPが表示されることを確認する。
+ 
+### 8-4. ファイアウォールルールに3000番ポートを追加する
+ 
+```bash
+gcloud compute firewall-rules update allow-prometheus \
+  --allow tcp:9090,tcp:3000
+```
+ 
+### 8-5. ブラウザでアクセスする
+ 
+```
+http://<EXTERNAL-IP>:3000
+```
+ 
+⚠️ ポート番号は3000。9090ではないので注意。
+ 
+初期ログイン情報：
+・ユーザー名：admin
+・パスワード：admin
+ 
+### 8-6. PrometheusをData Sourceとして追加する
+ 
+```
+左メニュー → Connections → Data Sources
+→ Add data source → Prometheus
+→ URL: http://prometheus:9090
+→ Save & Test
+```
+ 
+✅ 「Data source is working」と表示されることを確認する。
+ 
+⚠️ URLはEXTERNAL-IPではなくKubernetesのService名（prometheus）を使う。
+  同じクラスター内のServiceにはService名でアクセスできる。
+ 
+### 8-7. ダッシュボードを作成する
+ 
+```
+左メニュー → Dashboards → New Dashboard
+→ Add visualization → Prometheusを選択
+→ クエリを入力（例：up）
+→ Apply → Save dashboard
+```
+ 
+推奨クエリ（4大シグナル）：
+・up（監視対象の稼働状態）
+・prometheus_tsdb_head_samples_appended_total（収集サンプル数）
+・scrape_duration_seconds（スクレイピング時間）
+```
+
 ---
 
 ## 削除手順（作業後は必ず実施する）
@@ -232,6 +361,7 @@ up
 ```bash
 # Kubernetesリソースの削除
 kubectl delete -f prometheus-deployment.yaml
+kubectl delete -f ~/practice/prometheus/grafana-deployment.yaml
 
 # ファイアウォールルールの削除
 gcloud compute firewall-rules delete allow-prometheus --quiet
@@ -243,6 +373,16 @@ gcloud container clusters delete sre-practice-cluster \
 # Artifact Registryのリポジトリを削除
 gcloud artifacts repositories delete sre-practice-repo \
   --location asia-northeast1
+```
+
+### 重要：ファイアウォールルールはクラスター削除時に自動削除されない
+ 
+クラスターを削除してもファイアウォールルールは残存する。
+次回同じクラスター名で作成した場合、意図せず前回のルールが適用される
+可能性があるため、必ず明示的に削除すること。
+ 
+```bash
+gcloud compute firewall-rules delete allow-prometheus --quiet
 ```
 
 ---
@@ -285,3 +425,23 @@ gcloud compute instances describe <ノード名> \
 ```bash
 kubectl get services
 ```
+
+### ファイアウォールルールが既に存在する場合
+ 
+症状：
+```
+ERROR: The resource 'projects/.../global/firewalls/allow-prometheus' already exists
+```
+ 
+対処：
+```bash
+# 既存ルールの内容を確認する
+gcloud compute firewall-rules describe allow-prometheus --format=json
+ 
+# targetTagsが今回のノードと一致していれば再作成不要
+# 一致していない場合は削除して再作成する
+gcloud compute firewall-rules delete allow-prometheus --quiet
+```
+ 
+注意：targetTagsが空の場合、ネットワーク内の全インスタンスに適用される。
+学習環境では許容するが、本番環境では必ずtargetTagsを指定すること。
